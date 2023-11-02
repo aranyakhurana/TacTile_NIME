@@ -1,0 +1,57 @@
+/*
+  Code based on Tom Igoe's Serial Graphing Sketch
+  More info: http://wiki.processing.org/w/Tom_Igoe_Interview
+  Reads X analog inputs and visualizes them by drawing a grid
+  using grayscale shading of each square to represent sensor value.
+*/
+
+import processing.serial.*;
+
+Serial myPort; // The serial port
+int maxNumberOfSensors = 49;
+float[] sensorValue = new float[maxNumberOfSensors]; // Global variable for storing mapped sensor values
+float[] previousValue = new float[maxNumberOfSensors]; // Array of previous values
+int rectSize = 0;
+int rectY;
+
+void setup() {
+  size(600, 600); // Set up the window to the desired size
+  rectSize = width / 7;
+
+  println(Serial.list()); // List all the available serial ports
+  String portName = Serial.list()[2];
+  myPort = new Serial(this, portName, 9600);
+  myPort.clear();
+  myPort.bufferUntil('\n'); // Don't generate a serialEvent() until you get a newline ('\n') byte
+  background(255); // Set initial background
+  smooth(); // Turn on antialiasing
+  rectMode(CORNER);
+}
+
+void draw() {
+  for (int i = 0; i < maxNumberOfSensors; i++) {
+    fill(sensorValue[i]);
+    rect(rectSize * (i % 7), rectY, rectSize, rectSize); // Top left
+
+    if ((i + 1) % 7 == 0)
+      rectY += rectSize;
+
+    println(rectY);
+  }
+  rectY = 0;
+}
+
+void serialEvent(Serial myPort) {
+  String inString = myPort.readStringUntil('\n'); // Get the ASCII string
+  if (inString != null) { // If it's not empty
+    inString = trim(inString); // Trim off any whitespace
+    int incomingValues[] = int(split(inString, "\t")); // Convert to an array of ints
+    if (incomingValues.length <= maxNumberOfSensors && incomingValues.length > 0) {
+      for (int i = 0; i < incomingValues.length; i++) {
+        // Map the incoming values (0 to 1023) to an appropriate grayscale range (0-255):
+        sensorValue[i] = map(incomingValues[i], 0, 1023, 0, 255);
+        // println(sensorValue[i]);
+      }
+    }
+  }
+}
